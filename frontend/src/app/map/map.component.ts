@@ -9,13 +9,23 @@ import { CommonModule } from '@angular/common';
   template: `<div id="map" style="height: 100%; width: 100%;"></div>`,
   styles: [`
     :host { display: block; height: 100%; width: 100%; }
+    /* Remove borda padrão do leaflet para ícones div */
     .custom-div-icon { background: transparent; border: none; }
+    
+    /* Círculo do marcador */
     .marker-pin {
       width: 40px; height: 40px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3); transition: all 0.5s;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      transition: all 0.5s ease;
     }
-    .marker-pin img { width: 24px; height: 24px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+    
+    /* O ícone do caminhão (SVG) */
+    .marker-pin svg {
+      width: 24px; height: 24px;
+      fill: white; /* Cor do ícone */
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+    }
   `]
 })
 export class MapComponent implements AfterViewInit, OnChanges {
@@ -23,8 +33,12 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private markers: Map<number, L.Marker> = new Map();
   private followInterval: any;
 
-  // Ícone de Caminhão Online (Nunca quebra)
-  private truckIconUrl = 'https://cdn-icons-png.flaticon.com/512/741/741407.png';
+  // Ícone de Caminhão em Código (SVG) - Não quebra nunca!
+  private truckSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>
+  `;
 
   @Input() drivers: any[] = [];
   @Input() followTargetId: number | null = null;
@@ -48,7 +62,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attributionControl: false
     }).setView([-23.5505, -46.6333], 10);
 
-    // Mapa Estilo CartoDB Dark (Visual Cyberpunk Limpo)
+    // Mapa Estilo CartoDB (Visual Limpo)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19
     }).addTo(this.map);
@@ -62,18 +76,20 @@ export class MapComponent implements AfterViewInit, OnChanges {
     this.drivers.forEach(driver => {
       const lat = driver.latitude;
       const lng = driver.longitude;
+      // Define a cor baseada no status
       const color = driver.status === 'EM_ROTA' ? '#10b981' : (driver.status === 'PARADO' ? '#ef4444' : '#f59e0b');
 
-      // Cria o ícone personalizado usando HTML e a imagem online
+      // Monta o ícone com o SVG dentro
       const customIcon = L.divIcon({
         className: 'custom-div-icon',
         html: `
-          <div class="marker-pin" style="background-color: ${color}cc; border: 2px solid ${color}">
-            <img src="${this.truckIconUrl}" alt="Truck">
+          <div class="marker-pin" style="background-color: ${color}; border: 3px solid white;">
+            ${this.truckSvg}
           </div>
         `,
         iconSize: [40, 40],
-        iconAnchor: [20, 20]
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
       });
 
       if (this.markers.has(driver.id)) {
@@ -82,7 +98,12 @@ export class MapComponent implements AfterViewInit, OnChanges {
         marker.setIcon(customIcon);
       } else {
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(this.map);
-        marker.bindPopup(`<b>${driver.vehicle}</b><br>${driver.name}`);
+        marker.bindPopup(`
+          <div style="text-align:center;">
+            <strong style="font-size:14px; color:#333;">${driver.vehicle}</strong><br>
+            <span style="font-size:12px; color:#666;">${driver.name}</span>
+          </div>
+        `);
         this.markers.set(driver.id, marker);
       }
     });
@@ -101,7 +122,6 @@ export class MapComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  // Métodos públicos para serem chamados pelo Pai
   public flyToDriver(lat: number, lng: number) {
     this.map.flyTo([lat, lng], 14, { duration: 1.5 });
   }
