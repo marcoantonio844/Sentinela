@@ -571,18 +571,17 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- CARREGAMENTO DE DADOS (AGORA COM DADOS FIXOS PARA O PORTFÓLIO) ---
+  
   loadDrivers() {
-    // Simulando um delay de rede para parecer real
+    
     this.isLoading = true;
     setTimeout(() => {
-        // DADOS BRASILEIROS FIXOS
         this.drivers = [
-            { id: 1, name: "Carlos Mendes", vehicle: "Scania R500 - BRA-2024", status: "EM_ROTA", latitude: -23.5505, longitude: -46.6333 }, // São Paulo
-            { id: 2, name: "Fernanda Lima", vehicle: "Volvo FH 540 - RJX-9090", status: "EM_ROTA", latitude: -22.9068, longitude: -43.1729 }, // Rio de Janeiro
-            { id: 3, name: "Roberto Rocha", vehicle: "Mercedes Actros - MGZ-1010", status: "PARADO", latitude: -19.9167, longitude: -43.9345 }, // Belo Horizonte
-            { id: 4, name: "Paulo Souza", vehicle: "DAF XF 105 - SUL-5050", status: "EM_ROTA", latitude: -25.4284, longitude: -49.2733 }, // Curitiba
-            { id: 5, name: "Mariana Silva", vehicle: "Iveco Stralis - BAH-3030", status: "EM_ROTA", latitude: -12.9777, longitude: -38.5016 } // Salvador
+            { id: 1, name: "Carlos Mendes", vehicle: "Scania R500 - BRA-2024", status: "EM_ROTA", latitude: -23.5505, longitude: -46.6333 }, 
+            { id: 2, name: "Fernanda Lima", vehicle: "Volvo FH 540 - RJX-9090", status: "EM_ROTA", latitude: -22.9068, longitude: -43.1729 }, 
+            { id: 3, name: "Roberto Rocha", vehicle: "Mercedes Actros - MGZ-1010", status: "PARADO", latitude: -19.9167, longitude: -43.9345 },
+            { id: 4, name: "Paulo Souza", vehicle: "DAF XF 105 - SUL-5050", status: "EM_ROTA", latitude: -25.4284, longitude: -49.2733 }, 
+            { id: 5, name: "Mariana Silva", vehicle: "Iveco Stralis - BAH-3030", status: "EM_ROTA", latitude: -12.9777, longitude: -38.5016 }
         ];
         this.hydrateDrivers();
         this.isLoading = false;

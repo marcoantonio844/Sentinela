@@ -9,6 +9,50 @@ import { CommonModule } from '@angular/common';
   template: `<div id="map" style="height: 100%; width: 100%;"></div>`,
   styles: [`
     :host { display: block; height: 100%; width: 100%; }
+    
+    /* Estilo do Marcador */
+    ::ng-deep .custom-div-icon {
+      background: transparent;
+      border: none;
+    }
+    
+    ::ng-deep .marker-pin {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      border: 3px solid white;
+      transition: all 0.5s ease;
+      position: relative;
+    }
+
+    /* Efeito de Pulso (Onda) */
+    ::ng-deep .marker-pin::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid white;
+      opacity: 0;
+      animation: pulse 2s infinite;
+    }
+
+    /* Imagem do Caminhão */
+    ::ng-deep .truck-icon {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
   `]
 })
 export class MapComponent implements AfterViewInit, OnChanges {
@@ -16,12 +60,8 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private markers: Map<number, L.Marker> = new Map();
   private followInterval: any;
 
-  // SVG DO CAMINHÃO (DEFINIDO COMO STRING PARA NÃO QUEBRAR)
-  private truckSvg = `
-    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="fill: white; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
-      <path d="M20,8H17V4H3C1.9,4 1,4.9 1,6V17H3C3,18.66 4.34,20 6,20C7.66,20 9,18.66 9,17H15C15,18.66 16.34,20 18,20C19.66,20 21,18.66 21,17H23V12L20,8M6,18.5C5.17,18.5 4.5,17.83 4.5,17C4.5,16.17 5.17,15.5 6,15.5C6.83,15.5 7.5,16.17 7.5,17C7.5,17.83 6.83,18.5 6,18.5M18,18.5C17.17,18.5 16.5,17.83 16.5,17C16.5,16.17 17.17,15.5 18,15.5C18.83,15.5 19.5,16.17 19.5,17C19.5,17.83 18.83,18.5 18,18.5M17,12V9.5H19.5L21.46,12H17Z" />
-    </svg>
-  `;
+  // ÍCONE BLINDADO (Base64) - O navegador lê isso como uma imagem nativa.
+  private truckBase64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yMCA4aC0zVjRIM2MtMS4xIDAtMiAuOS0yIDJ2MTFoMmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDZjMCAxLjY2IDEuMzQgMyAzIDNzMy0xLjM0IDMtM2gydi01bC0zLTR6TTYgMTguNWMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6bTEzLjUtOWwxLjk2IDIuNUgxN1Y5LjVoMi41em0tMS41IDljLS44MyAwLTEuNS0uNjctMS41LTEuNXMuNjctMS41IDEuNS0xLjUgMS41LjY3IDEuNSAxLjUtLjY3IDEuNS0xLjUgMS41eiIvPjwvc3ZnPg==";
 
   @Input() drivers: any[] = [];
   @Input() followTargetId: number | null = null;
@@ -45,6 +85,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attributionControl: false
     }).setView([-23.5505, -46.6333], 10);
 
+    // Mapa Estilo Dark (Cyberpunk)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19
     }).addTo(this.map);
@@ -60,28 +101,17 @@ export class MapComponent implements AfterViewInit, OnChanges {
       const lng = driver.longitude;
       const color = driver.status === 'EM_ROTA' ? '#10b981' : (driver.status === 'PARADO' ? '#ef4444' : '#f59e0b');
 
-      // AQUI ESTÁ A MÁGICA: CSS INLINE (DENTRO DO HTML) PARA O ANGULAR NÃO BLOQUEAR
+      // Cria o ícone usando Classes CSS (Melhor performance)
       const customIcon = L.divIcon({
-        className: 'custom-div-icon', // Classe vazia para tirar borda padrão
+        className: 'custom-div-icon',
         html: `
-          <div style="
-            background-color: ${color};
-            width: 40px; 
-            height: 40px; 
-            border-radius: 50%;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            border: 3px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-          ">
-            ${this.truckSvg}
+          <div class="marker-pin" style="background-color: ${color}">
+            <img src="${this.truckBase64}" class="truck-icon" alt="Truck" />
           </div>
         `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20]
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        popupAnchor: [0, -25]
       });
 
       if (this.markers.has(driver.id)) {
@@ -91,9 +121,9 @@ export class MapComponent implements AfterViewInit, OnChanges {
       } else {
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(this.map);
         marker.bindPopup(`
-          <div style="text-align:center; font-family: sans-serif;">
-            <strong style="color: #333; font-size: 14px;">${driver.vehicle}</strong><br>
-            <span style="color: #666; font-size: 12px;">${driver.name}</span>
+          <div style="text-align:center; font-family: 'Segoe UI', sans-serif;">
+            <strong style="color: #1e293b; font-size: 14px;">${driver.vehicle}</strong><br>
+            <span style="color: #64748b; font-size: 12px;">${driver.name}</span>
           </div>
         `);
         this.markers.set(driver.id, marker);
