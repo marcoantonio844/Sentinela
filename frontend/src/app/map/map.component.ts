@@ -9,23 +9,6 @@ import { CommonModule } from '@angular/common';
   template: `<div id="map" style="height: 100%; width: 100%;"></div>`,
   styles: [`
     :host { display: block; height: 100%; width: 100%; }
-    /* Remove borda padrão do leaflet para ícones div */
-    .custom-div-icon { background: transparent; border: none; }
-    
-    /* Círculo do marcador */
-    .marker-pin {
-      width: 40px; height: 40px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
-      transition: all 0.5s ease;
-    }
-    
-    /* O ícone do caminhão (SVG) */
-    .marker-pin svg {
-      width: 24px; height: 24px;
-      fill: white; /* Cor do ícone */
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
-    }
   `]
 })
 export class MapComponent implements AfterViewInit, OnChanges {
@@ -33,10 +16,10 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private markers: Map<number, L.Marker> = new Map();
   private followInterval: any;
 
-  // Ícone de Caminhão em Código (SVG) - Não quebra nunca!
+  // SVG DO CAMINHÃO (DEFINIDO COMO STRING PARA NÃO QUEBRAR)
   private truckSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-      <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="fill: white; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
+      <path d="M20,8H17V4H3C1.9,4 1,4.9 1,6V17H3C3,18.66 4.34,20 6,20C7.66,20 9,18.66 9,17H15C15,18.66 16.34,20 18,20C19.66,20 21,18.66 21,17H23V12L20,8M6,18.5C5.17,18.5 4.5,17.83 4.5,17C4.5,16.17 5.17,15.5 6,15.5C6.83,15.5 7.5,16.17 7.5,17C7.5,17.83 6.83,18.5 6,18.5M18,18.5C17.17,18.5 16.5,17.83 16.5,17C16.5,16.17 17.17,15.5 18,15.5C18.83,15.5 19.5,16.17 19.5,17C19.5,17.83 18.83,18.5 18,18.5M17,12V9.5H19.5L21.46,12H17Z" />
     </svg>
   `;
 
@@ -62,7 +45,6 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attributionControl: false
     }).setView([-23.5505, -46.6333], 10);
 
-    // Mapa Estilo CartoDB (Visual Limpo)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19
     }).addTo(this.map);
@@ -76,14 +58,24 @@ export class MapComponent implements AfterViewInit, OnChanges {
     this.drivers.forEach(driver => {
       const lat = driver.latitude;
       const lng = driver.longitude;
-      // Define a cor baseada no status
       const color = driver.status === 'EM_ROTA' ? '#10b981' : (driver.status === 'PARADO' ? '#ef4444' : '#f59e0b');
 
-      // Monta o ícone com o SVG dentro
+      // AQUI ESTÁ A MÁGICA: CSS INLINE (DENTRO DO HTML) PARA O ANGULAR NÃO BLOQUEAR
       const customIcon = L.divIcon({
-        className: 'custom-div-icon',
+        className: 'custom-div-icon', // Classe vazia para tirar borda padrão
         html: `
-          <div class="marker-pin" style="background-color: ${color}; border: 3px solid white;">
+          <div style="
+            background-color: ${color};
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            border: 3px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+          ">
             ${this.truckSvg}
           </div>
         `,
@@ -99,9 +91,9 @@ export class MapComponent implements AfterViewInit, OnChanges {
       } else {
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(this.map);
         marker.bindPopup(`
-          <div style="text-align:center;">
-            <strong style="font-size:14px; color:#333;">${driver.vehicle}</strong><br>
-            <span style="font-size:12px; color:#666;">${driver.name}</span>
+          <div style="text-align:center; font-family: sans-serif;">
+            <strong style="color: #333; font-size: 14px;">${driver.vehicle}</strong><br>
+            <span style="color: #666; font-size: 12px;">${driver.name}</span>
           </div>
         `);
         this.markers.set(driver.id, marker);
