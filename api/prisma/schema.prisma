@@ -1,0 +1,19 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Driver {
+  id        Int     @id @default(autoincrement())
+  name      String
+  vehicle   String  @default("Caminhão VUC")
+  status    String  @default("DISPONIVEL") // Pode ser: EM_ROTA, PARADO, DISPONIVEL
+  latitude  Float
+  longitude Float
+}
