@@ -1,164 +1,155 @@
-import { Component, AfterViewInit, ViewEncapsulation } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, AfterViewInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import * as L from 'leaflet';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  template: `<div id="map" style="height: 100%; width: 100%; background-color: #1a1a1a;"></div>`,
-  encapsulation: ViewEncapsulation.None, 
+  imports: [CommonModule],
+  template: `<div id="map" style="height: 100%; width: 100%;"></div>`,
   styles: [`
-    :host { display: block; height: 100%; }
+    :host { display: block; height: 100%; width: 100%; }
     
-    /* POPUPS ESTILIZADOS */
-    .leaflet-popup-content-wrapper {
-      background: rgba(15, 23, 42, 0.95);
-      color: white; border-radius: 8px; border: 1px solid #3b82f6;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    /* Estilo do Marcador */
+    ::ng-deep .custom-div-icon {
+      background: transparent;
+      border: none;
     }
-    .leaflet-popup-tip { background: rgba(15, 23, 42, 0.95); border: 1px solid #3b82f6; border-top: none; border-left: none; }
-    .leaflet-container a.leaflet-popup-close-button { color: #fff; }
+    
+    ::ng-deep .marker-pin {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      border: 3px solid white;
+      transition: all 0.5s ease;
+      position: relative;
+    }
+
+    /* Efeito de Pulso (Onda) */
+    ::ng-deep .marker-pin::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid white;
+      opacity: 0;
+      animation: pulse 2s infinite;
+    }
+
+    /* Imagem do Caminhão */
+    ::ng-deep .truck-icon {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
   `]
 })
-export class MapComponent implements AfterViewInit {
+export class MapComponent implements AfterViewInit, OnChanges {
   private map!: L.Map;
-  
-  private markers: { [id: number]: L.Marker } = {};
-  private routeLines: { [id: number]: L.Polyline } = {};
-  private routeCoords: { [id: number]: [number, number][] } = {};
+  private markers: Map<number, L.Marker> = new Map();
+  private followInterval: any;
 
-  // NOVIDADE: ID do motorista que a câmera está seguindo
-  private followTargetId: number | null = null; 
+  // ÍCONE BLINDADO (Base64) - O navegador lê isso como uma imagem nativa.
+  private truckBase64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yMCA4aC0zVjRIM2MtMS4xIDAtMiAuOS0yIDJ2MTFoMmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDZjMCAxLjY2IDEuMzQgMyAzIDNzMy0xLjM0IDMtM2gydi01bC0zLTR6TTYgMTguNWMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6bTEzLjUtOWwxLjk2IDIuNUgxN1Y5LjVoMi41em0tMS41IDljLS44MyAwLTEuNS0uNjctMS41LTEuNXMuNjctMS41IDEuNS0xLjUgMS41LjY3IDEuNSAxLjUtLjY3IDEuNS0xLjUgMS41eiIvPjwvc3ZnPg==";
 
-  constructor(private http: HttpClient) {}
+  @Input() drivers: any[] = [];
+  @Input() followTargetId: number | null = null;
 
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.initMap();
-      this.drawZones();
-      this.loadDrivers();
-      this.startMultiSimulation();
-    }, 100);
+    this.initMap();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['drivers'] && this.drivers) {
+      this.updateMarkers();
+    }
+    if (changes['followTargetId']) {
+      this.handleFollowMode();
+    }
   }
 
   private initMap(): void {
-    if (this.map) { this.map.remove(); }
-    
-    const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' });
-    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' });
-
     this.map = L.map('map', {
-      center: [-23.55052, -46.633309],
-      zoom: 12,
-      layers: [streetLayer],
-      zoomControl: false
-    });
+      zoomControl: false,
+      attributionControl: false
+    }).setView([-23.5505, -46.6333], 10);
+
+    // Mapa Estilo Dark (Cyberpunk)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(this.map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
-    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(this.map);
-
-    const baseMaps = { "🗺️ Mapa": streetLayer, "🛰️ Satélite": satelliteLayer };
-    L.control.layers(baseMaps, undefined, { position: 'topright' }).addTo(this.map);
   }
 
-  private drawZones() {
-    L.circle([-23.55052, -46.633309], { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15, radius: 2000 }).addTo(this.map);
-    L.circle([-23.6000, -46.6900], { color: '#10b981', fillColor: '#10b981', fillOpacity: 0.15, radius: 1500 }).addTo(this.map);
-    L.circle([-23.5200, -46.5500], { color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.15, radius: 1000 }).addTo(this.map);
-  }
+  private updateMarkers(): void {
+    if (!this.map) return;
 
-  private loadDrivers() {
-    this.http.get<any[]>('http://localhost:3000/drivers')
-      .subscribe({
-        next: (drivers) => drivers.forEach(driver => this.addMarker(driver)),
-        error: (err) => console.error(err)
-      });
-  }
+    this.drivers.forEach(driver => {
+      const lat = driver.latitude;
+      const lng = driver.longitude;
+      const color = driver.status === 'EM_ROTA' ? '#10b981' : (driver.status === 'PARADO' ? '#ef4444' : '#f59e0b');
 
-  private addMarker(driver: any) {
-    const icon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34]
-    });
-
-    const marker = L.marker([driver.latitude, driver.longitude], { icon }).addTo(this.map);
-
-    marker.bindPopup(`
-      <div style="font-family: 'Segoe UI', sans-serif; min-width: 150px;">
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-          <div style="font-size: 20px;">🚛</div>
-          <div>
-            <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #fff;">${driver.name}</h3>
-            <div style="font-size: 11px; color: #94a3b8;">${driver.vehicle}</div>
+      // Cria o ícone usando Classes CSS (Melhor performance)
+      const customIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `
+          <div class="marker-pin" style="background-color: ${color}">
+            <img src="${this.truckBase64}" class="truck-icon" alt="Truck" />
           </div>
-        </div>
-        <div style="background: rgba(255,255,255,0.1); padding: 5px; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between;">
-          <span>Status:</span>
-          <span style="font-weight: bold; color: ${driver.status === 'EM_ROTA' ? '#4caf50' : '#f44336'}">
-            ${driver.status === 'EM_ROTA' ? 'EM MOVIMENTO' : 'PARADO'}
-          </span>
-        </div>
-      </div>
-    `);
-      
-    this.markers[driver.id] = marker;
+        `,
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        popupAnchor: [0, -25]
+      });
 
-    if (driver.status === 'EM_ROTA') {
-      this.routeCoords[driver.id] = [[driver.latitude, driver.longitude]];
-      this.routeLines[driver.id] = L.polyline(this.routeCoords[driver.id], { 
-        color: this.getRandomColor(driver.id), weight: 4, opacity: 0.8
-      }).addTo(this.map);
+      if (this.markers.has(driver.id)) {
+        const marker = this.markers.get(driver.id)!;
+        marker.setLatLng([lat, lng]);
+        marker.setIcon(customIcon);
+      } else {
+        const marker = L.marker([lat, lng], { icon: customIcon }).addTo(this.map);
+        marker.bindPopup(`
+          <div style="text-align:center; font-family: 'Segoe UI', sans-serif;">
+            <strong style="color: #1e293b; font-size: 14px;">${driver.vehicle}</strong><br>
+            <span style="color: #64748b; font-size: 12px;">${driver.name}</span>
+          </div>
+        `);
+        this.markers.set(driver.id, marker);
+      }
+    });
+  }
+
+  private handleFollowMode() {
+    if (this.followInterval) clearInterval(this.followInterval);
+
+    if (this.followTargetId) {
+      this.followInterval = setInterval(() => {
+        const driver = this.drivers.find(d => d.id === this.followTargetId);
+        if (driver && this.map) {
+          this.map.flyTo([driver.latitude, driver.longitude], 15, { animate: true, duration: 1 });
+        }
+      }, 1000);
     }
   }
 
-  private startMultiSimulation() {
-    setInterval(() => {
-      Object.keys(this.markers).forEach(key => {
-        const id = Number(key);
-        const marker = this.markers[id];
-        
-        if (this.routeLines[id]) {
-          const currentLatLng = marker.getLatLng();
-          const latMove = id % 2 === 0 ? 0.0003 : -0.0002;
-          const lngMove = id % 3 === 0 ? 0.0003 : -0.0003;
-          
-          const newLat = currentLatLng.lat + latMove + (Math.random() * 0.0001);
-          const newLng = currentLatLng.lng + lngMove + (Math.random() * 0.0001);
-
-          marker.setLatLng([newLat, newLng]);
-
-          // Lógica da Câmera Espiã: Se estiver seguindo este ID, centraliza o mapa nele
-          if (this.followTargetId === id) {
-            this.map.panTo([newLat, newLng]);
-          }
-
-          const coords = this.routeCoords[id];
-          coords.push([newLat, newLng]);
-          this.routeLines[id].setLatLngs(coords);
-          if (coords.length > 500) coords.shift(); 
-        }
-      });
-    }, 2000); 
-  }
-
-  private getRandomColor(id: number): string {
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-    return colors[id % colors.length];
-  }
-
   public flyToDriver(lat: number, lng: number) {
-    this.map.flyTo([lat, lng], 16, { duration: 1.5 });
-    Object.values(this.markers).forEach(marker => {
-      const mLat = marker.getLatLng().lat;
-      if (Math.abs(mLat - lat) < 0.0001) { marker.openPopup(); }
-    });
+    this.map.flyTo([lat, lng], 14, { duration: 1.5 });
   }
 
-  // NOVIDADE: Função pública para ativar/desativar o modo seguir
   public setFollowTarget(id: number | null) {
     this.followTargetId = id;
+    this.handleFollowMode();
   }
 }
