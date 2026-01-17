@@ -9,50 +9,13 @@ import { CommonModule } from '@angular/common';
   template: `<div id="map" style="height: 100%; width: 100%;"></div>`,
   styles: [`
     :host { display: block; height: 100%; width: 100%; }
-    
-    /* Estilo do Marcador */
-    ::ng-deep .custom-div-icon {
-      background: transparent;
-      border: none;
+    .custom-div-icon { background: transparent; border: none; }
+    .marker-pin {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3); transition: all 0.5s;
     }
-    
-    ::ng-deep .marker-pin {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-      border: 3px solid white;
-      transition: all 0.5s ease;
-      position: relative;
-    }
-
-    /* Efeito de Pulso (Onda) */
-    ::ng-deep .marker-pin::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      border: 2px solid white;
-      opacity: 0;
-      animation: pulse 2s infinite;
-    }
-
-    /* Imagem do Caminhão */
-    ::ng-deep .truck-icon {
-      width: 26px;
-      height: 26px;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.8; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
+    .marker-pin img { width: 24px; height: 24px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
   `]
 })
 export class MapComponent implements AfterViewInit, OnChanges {
@@ -60,8 +23,8 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private markers: Map<number, L.Marker> = new Map();
   private followInterval: any;
 
-  // ÍCONE BLINDADO (Base64) - O navegador lê isso como uma imagem nativa.
-  private truckBase64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yMCA4aC0zVjRIM2MtMS4xIDAtMiAuOS0yIDJ2MTFoMmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDZjMCAxLjY2IDEuMzQgMyAzIDNzMy0xLjM0IDMtM2gydi01bC0zLTR6TTYgMTguNWMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6bTEzLjUtOWwxLjk2IDIuNUgxN1Y5LjVoMi41em0tMS41IDljLS44MyAwLTEuNS0uNjctMS41LTEuNXMuNjctMS41IDEuNS0xLjUgMS41LjY3IDEuNSAxLjUtLjY3IDEuNS0xLjUgMS41eiIvPjwvc3ZnPg==";
+  // Ícone de Caminhão Online (Nunca quebra)
+  private truckIconUrl = 'https://cdn-icons-png.flaticon.com/512/741/741407.png';
 
   @Input() drivers: any[] = [];
   @Input() followTargetId: number | null = null;
@@ -85,7 +48,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attributionControl: false
     }).setView([-23.5505, -46.6333], 10);
 
-    // Mapa Estilo Dark (Cyberpunk)
+    // Mapa Estilo CartoDB Dark (Visual Cyberpunk Limpo)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19
     }).addTo(this.map);
@@ -101,17 +64,16 @@ export class MapComponent implements AfterViewInit, OnChanges {
       const lng = driver.longitude;
       const color = driver.status === 'EM_ROTA' ? '#10b981' : (driver.status === 'PARADO' ? '#ef4444' : '#f59e0b');
 
-      // Cria o ícone usando Classes CSS (Melhor performance)
+      // Cria o ícone personalizado usando HTML e a imagem online
       const customIcon = L.divIcon({
         className: 'custom-div-icon',
         html: `
-          <div class="marker-pin" style="background-color: ${color}">
-            <img src="${this.truckBase64}" class="truck-icon" alt="Truck" />
+          <div class="marker-pin" style="background-color: ${color}cc; border: 2px solid ${color}">
+            <img src="${this.truckIconUrl}" alt="Truck">
           </div>
         `,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22],
-        popupAnchor: [0, -25]
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
       });
 
       if (this.markers.has(driver.id)) {
@@ -120,12 +82,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
         marker.setIcon(customIcon);
       } else {
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(this.map);
-        marker.bindPopup(`
-          <div style="text-align:center; font-family: 'Segoe UI', sans-serif;">
-            <strong style="color: #1e293b; font-size: 14px;">${driver.vehicle}</strong><br>
-            <span style="color: #64748b; font-size: 12px;">${driver.name}</span>
-          </div>
-        `);
+        marker.bindPopup(`<b>${driver.vehicle}</b><br>${driver.name}`);
         this.markers.set(driver.id, marker);
       }
     });
@@ -144,6 +101,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
     }
   }
 
+  // Métodos públicos para serem chamados pelo Pai
   public flyToDriver(lat: number, lng: number) {
     this.map.flyTo([lat, lng], 14, { duration: 1.5 });
   }

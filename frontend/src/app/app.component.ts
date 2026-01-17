@@ -1,6 +1,6 @@
 import { Component, ViewChild, OnInit, OnDestroy, Inject, HostListener } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http'; // Mantido para evitar erros, mas não será usado na busca
 import { MapComponent } from './map/map.component';
 import { FormsModule } from '@angular/forms'; 
 
@@ -20,7 +20,9 @@ interface Toast {
       <div class="login-overlay"></div>
       <div class="login-box">
         <div class="login-logo">
-          <div class="logo-circle big">S</div> <h1>SENTINELA</h1> <span>ACESSO CORPORATIVO</span>
+          <div class="logo-circle big">S</div>
+          <h1>SENTINELA</h1>
+          <span>ACESSO CORPORATIVO</span>
         </div>
         <div class="input-group">
           <label>ID DO OPERADOR</label>
@@ -72,9 +74,9 @@ interface Toast {
         </div>
         <div class="help-body">
           <div class="shortcut-row"><span class="key">/</span><span class="desc">Ir para Busca</span></div>
-          <div class="shortcut-row"><span class="key">Esc</span><span class="desc">Fechar Janelas / Menus</span></div>
-          <div class="shortcut-row"><span class="key">[</span><span class="desc">Recolher Barra Lateral</span></div>
-          <div class="shortcut-row"><span class="key">F</span><span class="desc">Modo Tela Cheia</span></div>
+          <div class="shortcut-row"><span class="key">Esc</span><span class="desc">Fechar Janelas</span></div>
+          <div class="shortcut-row"><span class="key">[</span><span class="desc">Menu Lateral</span></div>
+          <div class="shortcut-row"><span class="key">F</span><span class="desc">Tela Cheia</span></div>
         </div>
         <div class="help-footer">Sentinela OS v7.0</div>
       </div>
@@ -85,10 +87,7 @@ interface Toast {
       <div class="hud-row"><span>CPU</span><div class="hud-bar"><div [style.width]="hudStats.cpu + '%'"></div></div><span class="hud-val">{{hudStats.cpu}}%</span></div>
       <div class="hud-row"><span>RAM</span><div class="hud-bar"><div [style.width]="hudStats.ram + '%'"></div></div><span class="hud-val">{{hudStats.ram}}%</span></div>
       <div class="hud-row"><span>LATÊNCIA</span><span class="hud-val ping">{{hudStats.ping}} ms</span></div>
-      <div class="hud-code">
-        <span>PERDA_PCT: 0.0%</span>
-        <span>CRIPTOGRAFIA: AES-256</span>
-      </div>
+      <div class="hud-code"><span>PERDA_PCT: 0.0%</span><span>CRIPTOGRAFIA: AES-256</span></div>
     </div>
 
     <div class="layout" *ngIf="isLoggedIn" (click)="closeContextMenu()">
@@ -106,20 +105,12 @@ interface Toast {
         </div>
         
         <div class="system-status">
-          <div class="radar-widget" title="Escaneando Satélite...">
-            <div class="radar-sweep"></div>
-          </div>
-
+          <div class="radar-widget" title="Escaneando Satélite..."><div class="radar-sweep"></div></div>
           <div class="live-indicator"><span class="pulsing-dot"></span> AO VIVO</div>
-          
-          <button class="icon-btn" (click)="toggleMute()" [title]="isMuted ? 'Ativar Voz' : 'Desativar Voz'">
-            {{ isMuted ? '🔇' : '🔊' }}
-          </button>
-
+          <button class="icon-btn" (click)="toggleMute()" [title]="isMuted ? 'Ativar Voz' : 'Desativar Voz'">{{ isMuted ? '🔇' : '🔊' }}</button>
           <button class="icon-btn" (click)="showHelp = true" title="Ajuda">?</button>
           <button class="action-btn-header" (click)="downloadReport()" title="Baixar Planilha">📥 Exportar</button>
           <button class="icon-btn" (click)="toggleFullscreen()" title="Tela Cheia">⛶</button>
-          
           <div class="widget warning" *ngIf="countAlerts() > 0">⚠️ {{ countAlerts() }}</div>
           <div class="widget"><span class="icon">⛅</span> {{ weatherTemp }}°C</div>
           <div class="widget time">{{ currentTime | date:'HH:mm:ss' }}</div>
@@ -171,7 +162,6 @@ interface Toast {
                    (click)="selectDriver(driver)"
                    (contextmenu)="onRightClick($event, driver)" 
                    [title]="driver.name">
-                
                 <div class="driver-avatar">{{ driver.name.charAt(0) }}</div>
                 <div class="driver-details" *ngIf="!sidebarCollapsed">
                   <div class="name">{{ driver.name }}</div>
@@ -253,13 +243,13 @@ interface Toast {
   styles: [`
     :host { --bg-dark: #0f172a; --bg-sidebar: #ffffff; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --text-main: #334155; --text-muted: #94a3b8; --border: #e2e8f0; }
 
-    /* RADAR WIDGET */
+    /* RADAR */
     .radar-widget { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(16, 185, 129, 0.3); position: relative; overflow: hidden; background: rgba(0,20,0,0.5); display: flex; align-items: center; justify-content: center; }
     .radar-widget::after { content: ''; width: 4px; height: 4px; background: var(--success); border-radius: 50%; }
     .radar-sweep { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: conic-gradient(from 0deg, transparent 0deg, rgba(16, 185, 129, 0.5) 60deg, transparent 60deg); animation: radarSpin 2s linear infinite; border-radius: 50%; }
     @keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* HUD DIAGNÓSTICO */
+    /* HUD */
     .system-hud { position: absolute; bottom: 20px; right: 20px; width: 200px; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(5px); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 10px; z-index: 50; pointer-events: none; font-family: 'Consolas', monospace; color: #fff; box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
     .hud-title { font-size: 10px; color: var(--primary); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
     .hud-row { display: flex; align-items: center; gap: 8px; font-size: 10px; margin-bottom: 5px; }
@@ -270,7 +260,7 @@ interface Toast {
     .hud-val.ping { width: auto; color: var(--warning); }
     .hud-code { margin-top: 8px; font-size: 9px; color: rgba(255,255,255,0.3); display: flex; justify-content: space-between; }
 
-    /* EFEITO GLITCH */
+    /* GLITCH */
     .glitch-hover:hover { animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite; color: var(--primary); cursor: default; }
     @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
 
@@ -282,7 +272,7 @@ interface Toast {
     .terminal-body::-webkit-scrollbar-track { background: #0f172a; }
     .terminal-body::-webkit-scrollbar-thumb { background: #334155; }
 
-    /* MENU CONTEXTO */
+    /* CONTEXT MENU */
     .context-menu { position: fixed; z-index: 60000; background: white; width: 200px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; animation: fadeIn 0.1s; }
     .ctx-header { background: #f8fafc; padding: 8px 12px; font-size: 11px; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); }
     .context-menu button { width: 100%; text-align: left; padding: 10px 12px; background: none; border: none; font-size: 13px; color: var(--text-main); cursor: pointer; transition: 0.2s; }
@@ -291,7 +281,7 @@ interface Toast {
     .context-menu button.ctx-danger { color: var(--danger); }
     .context-menu button.ctx-danger:hover { background: #fef2f2; }
 
-    /* AJUDA */
+    /* HELP */
     .help-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 50000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
     .help-modal { background: white; width: 400px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3); font-family: 'Segoe UI', sans-serif; }
     .help-header { background: var(--bg-dark); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; }
@@ -335,7 +325,7 @@ interface Toast {
     @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
     @keyframes loadBar { 0% { width: 0%; } 40% { width: 40%; } 70% { width: 60%; } 100% { width: 100%; } }
 
-    /* LAYOUT BASE */
+    /* LAYOUT */
     .layout { height: 100vh; display: flex; flex-direction: column; font-family: 'Segoe UI', sans-serif; background: #f1f5f9; }
     .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
     .toast { pointer-events: auto; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; min-width: 250px; animation: slideIn 0.3s ease-out; border-left: 5px solid; }
@@ -455,12 +445,13 @@ export class AppComponent implements OnInit, OnDestroy {
   showHelp: boolean = false;
   isMuted: boolean = false;
 
-  // Variáveis para Context Menu e Clima
   contextMenu = { visible: false, x: 0, y: 0, driver: null as any };
   hudStats = { cpu: 12, ram: 45, ping: 24 }; 
   weatherTemp: number = 24;
 
-  drivers: any[] = [];
+  // DADOS DOS MOTORISTAS AGORA ESTÃO AQUI DENTRO (Offline Ready)
+  drivers: any[] = []; 
+  
   searchTerm: string = ''; 
   selectedDriver: any = null;
   filterStatus: 'ALL' | 'EM_ROTA' | 'PARADO' = 'ALL';
@@ -485,7 +476,8 @@ export class AppComponent implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: any;
 
   constructor(private http: HttpClient, @Inject(DOCUMENT) private document: Document) {
-    this.document.title = 'SENTINELA | Monitoramento de Frotas'; // Título da Aba
+    this.document.title = 'SENTINELA | Monitoramento de Frotas';
+    // Removemos a chamada HTTP e colocamos os dados fixos abaixo
     setTimeout(() => { this.loadDrivers(); }, 1500);
   }
 
@@ -516,7 +508,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.physicsTimer = setInterval(() => { this.simulatePhysics(); }, 1000);
     this.titleTimer = setInterval(() => { this.updatePageTitle(); }, 1000);
     
-    // Atualiza HUD de Diagnóstico
     this.hudTimer = setInterval(() => {
       this.hudStats.cpu = Math.floor(Math.random() * (40 - 10) + 10);
       this.hudStats.ram = Math.floor(Math.random() * (60 - 40) + 40);
@@ -526,7 +517,6 @@ export class AppComponent implements OnInit, OnDestroy {
     setInterval(() => { this.weatherTemp += Math.floor(Math.random() * 3) - 1; }, 10000);
   }
 
-  // --- MENU DE CONTEXTO ---
   onRightClick(event: MouseEvent, driver: any) {
     event.preventDefault(); 
     this.contextMenu = { visible: true, x: event.clientX, y: event.clientY, driver: driver };
@@ -581,12 +571,22 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  // --- CARREGAMENTO DE DADOS (AGORA COM DADOS FIXOS PARA O PORTFÓLIO) ---
   loadDrivers() {
-    this.http.get<any[]>('http://localhost:3000/drivers').subscribe(data => {
-      this.drivers = data;
-      this.hydrateDrivers();
-      this.isLoading = false;
-    });
+    // Simulando um delay de rede para parecer real
+    this.isLoading = true;
+    setTimeout(() => {
+        // DADOS BRASILEIROS FIXOS
+        this.drivers = [
+            { id: 1, name: "Carlos Mendes", vehicle: "Scania R500 - BRA-2024", status: "EM_ROTA", latitude: -23.5505, longitude: -46.6333 }, // São Paulo
+            { id: 2, name: "Fernanda Lima", vehicle: "Volvo FH 540 - RJX-9090", status: "EM_ROTA", latitude: -22.9068, longitude: -43.1729 }, // Rio de Janeiro
+            { id: 3, name: "Roberto Rocha", vehicle: "Mercedes Actros - MGZ-1010", status: "PARADO", latitude: -19.9167, longitude: -43.9345 }, // Belo Horizonte
+            { id: 4, name: "Paulo Souza", vehicle: "DAF XF 105 - SUL-5050", status: "EM_ROTA", latitude: -25.4284, longitude: -49.2733 }, // Curitiba
+            { id: 5, name: "Mariana Silva", vehicle: "Iveco Stralis - BAH-3030", status: "EM_ROTA", latitude: -12.9777, longitude: -38.5016 } // Salvador
+        ];
+        this.hydrateDrivers();
+        this.isLoading = false;
+    }, 1000);
   }
 
   hydrateDrivers() {
